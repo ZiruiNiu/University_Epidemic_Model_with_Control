@@ -106,15 +106,18 @@ guess = Yguess(1:guessTime,:)';
 %                       Set the cost function                             %
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
 %%% Set coefficient matrices of the quadratic cost function
+% Set the target of states
+x_tar1 = [1; 1; 0; 0; 0; 0; 0; 0; 0; 0; 0];
+
 % Maximize the number of susceptible
-H_1 = diag([-100, -100, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
-Q_1 = diag([-100; -100; 0; 0; 0; 0; 0; 0; 0; 0; 0]);
-R_1 = diag([0; 0; 0; 0; 0]);
+H_1 = diag([100, 100, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
+Q_1 = diag([100; 100; 0; 0; 0; 0; 0; 0; 0; 0; 0]);
+R_1 = diag([1e-2; 1e-2; 1e-2; 1e-2; 1e-2]);
 
 % Define the system dynamics and the cost function
 problem1.func.dynamics = @(t,x,u)( StaffStudentDynamics(x,u,param) );
-problem1.func.pathObj = @(t,x,u)( pathObj(x, u, Q_1, R_1) );
-problem1.func.bndObj = @(t0,x0,tF,xF)( xF'*H_1*xF );
+problem1.func.pathObj = @(t,x,u)( pathObj(x, u, x_tar1, Q_1, R_1) );
+problem1.func.bndObj = @(t0,x0,tF,xF)( (xF-x_tar1)'*H_1*(xF-x_tar1) );
 
 
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
@@ -138,11 +141,9 @@ problem1.bounds.finalState.upp = ones(11,1);
 problem1.bounds.state.low = zeros(11,1);
 problem1.bounds.state.upp = ones(11,1);
 
-% Set path constraints for input control variables. The upper bounds are 
-% set to limit the maximum effectiveness because the actual enforcement is 
-% not ideal
-problem1.bounds.control.low = [0; 0; 0; 1; 1];
-problem1.bounds.control.upp = [0.7; 0.7; 0.7; 0.5/param.eta_y; 0.5/param.eta_s];
+% Set path constraints for input control variables. 
+problem1.bounds.control.low = zeros(5,1);
+problem1.bounds.control.upp = ones(5,1);
 
 
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
@@ -185,17 +186,19 @@ uSolP2 = soln1.interp.control(tSolP2);
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
 %                       Set the cost function                             %
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
+% No minimization on states
+x_tar2 = [0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0];
 H_2 = diag([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
 Q_2 = diag([0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0]);
 
 % Minimize the total norm of control variables. The division is used to
 % normalize the input varialbes
-R_2 = diag([100; 100; 100; 100; 100]) ./ ([0.7; 0.7; 0.7; 0.5/param.eta_y; 0.5/param.eta_s].^2);
+R_2 = diag([100; 100; 100; 100; 100]);
 
 % Define the system dynamics and the cost function
 problem2.func.dynamics = @(t,x,u)( StaffStudentDynamics(x,u,param) );
-problem2.func.pathObj = @(t,x,u)( pathObj(x, u, Q_2, R_2) );
-problem2.func.bndObj = @(t0,x0,tF,xF)( xF'*H_2*xF );
+problem2.func.pathObj = @(t,x,u)( pathObj(x, u, x_tar2, Q_2, R_2) );
+problem2.func.bndObj = @(t0,x0,tF,xF)( (xF-x_tar2)'*H_2*(xF-x_tar2) );
 
 
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
@@ -216,16 +219,13 @@ problem2.bounds.initialState.upp = x0_p2;
 problem2.bounds.finalState.low = [0.95*param.Pop_y/param.Pop; 0.95*param.Pop_s/param.Pop; zeros(9,1)];
 problem2.bounds.finalState.upp = [1; 1; 1e-4; 1e-4; 1e-4; 1e-4; ones(5,1)];
 
-% Set path constraints for states to require that over 95% students and
-% staffs retain un-infected during the 120 days
-problem2.bounds.state.low = [0.95*param.Pop_y/param.Pop; 0.95*param.Pop_s/param.Pop; zeros(9,1)];
+% Set path constraints for states
+problem2.bounds.state.low = zeros(11,1);
 problem2.bounds.state.upp = ones(11,1);
 
-% Set path constraints for input control variables. The upper bounds are 
-% set to limit the maximum effectiveness because the actual enforcement is 
-% not ideal
-problem2.bounds.control.low = [0; 0; 0; 1; 1];
-problem2.bounds.control.upp = [0.7; 0.7; 0.7; 0.5/param.eta_y; 0.5/param.eta_s];
+% Set path constraints for input control variables.
+problem2.bounds.control.low = zeros(5,1);
+problem2.bounds.control.upp = ones(5,1);
 
 
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%

@@ -97,17 +97,18 @@ guess = Yguess(1:guessTime,:)';
 %                       Set the cost function                             %
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
 %%% Set coefficient matrices of the quadratic cost function
-% Maximize the number of susceptible
-H = diag([-100, -100, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
-Q = diag([-100; -100; 0; 0; 0; 0; 0; 0; 0; 0; 0]);
+% Set the target of states
+x_tar = [1; 1; 0; 0; 0; 0; 0; 0; 0; 0; 0];
 
-% To guarantee normal convergence
-R = diag([5e-4; 5e-4; 5e-4; 5e-4; 5e-4]);
+% Maximize the number of susceptible
+H = diag([100, 100, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
+Q = diag([100; 100; 0; 0; 0; 0; 0; 0; 0; 0; 0]);
+R = diag([1e-2; 1e-2; 1e-2; 1e-2; 1e-2]);
 
 % Define the system dynamics and the cost function
 problem1.func.dynamics = @(t,x,u)( StaffStudentDynamics(x,u,param) );
-problem1.func.pathObj = @(t,x,u)( pathObj(x, u, Q, R) );
-problem1.func.bndObj = @(t0,x0,tF,xF)( xF'*H*xF );
+problem1.func.pathObj = @(t,x,u)( pathObj(x, u, x_tar, Q, R) );
+problem1.func.bndObj = @(t0,x0,tF,xF)( (xF - x_tar)'*H*(xF - x_tar) );
 
 
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
@@ -134,8 +135,8 @@ problem1.bounds.state.upp = ones(11,1);
 % Set path constraints for input control variables. The upper bounds are 
 % set to limit the maximum effectiveness because the actual enforcement is 
 % not ideal
-problem1.bounds.control.low = [0; 0; 0; 1; 1];
-problem1.bounds.control.upp = [0.7; 0.7; 0.7; 0.5/param.eta_y; 0.5/param.eta_s];
+problem1.bounds.control.low = zeros(5,1);
+problem1.bounds.control.upp = ones(5,1);
 
 
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~%
@@ -153,8 +154,7 @@ problem1.guess.control = [0.5*ones(3,guessTime+1); 5*ones(2,guessTime+1)];
 problem1.options.nlpOpt = optimset(...
             'Display','iter',...
             'TolFun',1e-6,...
-            'MaxFunEvals',1e6,...
-            'MaxIter', 2000);
+            'MaxFunEvals',1e6);
 problem1.options.verbose = 3;
 problem1.options.method = 'trapezoid';
 problem1.options.trapezoid.nGrid = 30;
